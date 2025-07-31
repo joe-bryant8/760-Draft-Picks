@@ -105,7 +105,7 @@ avg_round = df_team["round"].mean()
 
 if num_players > 0:
     years_since_draft = max(1, 2024 - df_team["season"].min())
-    recency_scale = min(2.0, 4 / years_since_draft)  # Boost for recent years, capped
+    recency_scale = min(2.0, 4 / years_since_draft)
     adjusted_impact_score = df_team["impact_score"] * recency_scale
     total_impact = adjusted_impact_score.sum()
 

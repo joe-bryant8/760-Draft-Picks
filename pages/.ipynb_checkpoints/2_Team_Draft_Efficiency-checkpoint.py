@@ -54,7 +54,7 @@ fig = px.scatter(
     opacity=0
 )
 
-# Add logos + hover trace (with invisible marker to prevent dot showing)
+# Add logos
 for _, row in team_stats.iterrows():
     picks = df[df["team"] == row["team"]]
     hover_text = "<br>".join([

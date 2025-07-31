@@ -34,7 +34,7 @@ HEATMAP_COLORS = ["#fee2e2", "#fca5a5", "#f87171", "#ef4444", "#dc2626"]
 st.markdown(
     f"""
     <div style="background-color:{BACKGROUND_COLOR}; padding:2rem 2rem 1.5rem 2rem; border-left:8px solid {ACCENT_COLOR}; margin-bottom:2rem;">
-        <h1 style="color:{TEXT_COLOR}; font-size:2.25rem; margin:0 0 0.25rem 0;">Data 780 - NFL Draft Data Dashboard</h1>
+        <h1 style="color:{TEXT_COLOR}; font-size:2.25rem; margin:0 0 0.25rem 0;">Data 760 - NFL Draft Data Dashboard</h1>
         <p style="color:{TEXT_COLOR}; font-size:1.05rem; margin:0;">
             Explore trends in player selection, college pipelines, and draft strategies from recent years.
         </p>
