@@ -33,15 +33,14 @@ TEAM_COLORS = {
 
 # Load data
 df = pd.read_csv("draft_picks.csv")
-df = df[df["round"] > 0]  # remove undrafted
+df = df[df["round"] > 0]
 
 # Compute impact score and context score
 df["impact_score"] = df["w_av"] + (5 * df["allpro"] + 2 * df["probowls"])
 df["w_av_context"] = df["w_av"] * (1 + (df["round"] / 10))
 df["recognition"] = df["allpro"] + df["probowls"] > 0
 
-# Create stat summary
-
+# Statistics Summary
 def generate_stat_summary(row):
     pos = row["position"]
     parts = []
@@ -65,12 +64,12 @@ def generate_stat_summary(row):
         parts = [f"INT: {safe_val(row['def_ints'])}", f"Solo Tackles: {safe_val(row['def_solo_tackles'])}"]
 
     return " | ".join(parts)
-    
+
 # Page config
 st.set_page_config(page_title="Team Overview", layout="wide")
 st.markdown("<style>section[data-testid='stSidebar'] div.stButton > button { width: 100%; }</style>", unsafe_allow_html=True)
 
-# --- Sidebar: team + year filters ---
+# Sidebar
 abbrev_to_full = {k: v for k, v in TEAM_NAMES.items() if k in df["team"].unique()}
 full_to_abbrev = {v: k for k, v in abbrev_to_full.items()}
 selected_team_name = st.sidebar.selectbox("Select a Team", sorted(full_to_abbrev.keys()))
@@ -105,9 +104,15 @@ num_players = len(df_team)
 avg_round = df_team["round"].mean()
 
 if num_players > 0:
+    years_since_draft = max(1, 2024 - df_team["season"].min())
+    recency_scale = min(2.0, 4 / years_since_draft)  # Boost for recent years, capped
+    adjusted_impact_score = df_team["impact_score"] * recency_scale
+    total_impact = adjusted_impact_score.sum()
+
     raw_score = 100 * (total_impact / (num_players * 15))
     penalty = (avg_round - 1) / 20
     draft_score = raw_score * (1 - penalty)
+    draft_score = min(draft_score, 100)
 else:
     draft_score = 0
 
@@ -129,41 +134,36 @@ if draft_score >= 80:
 elif draft_score >= 65:
     grade_color = "#66BB6A"
 elif draft_score >= 50:
-    grade_color = "#FDD835"
+    grade_color = "#FFB300"
 elif draft_score >= 35:
     grade_color = "#FF9800"
 else:
     grade_color = "#B71C1C"
 
-# --- Team Draft Performance Header ---
-header_col1, header_col2 = st.columns([6, 1])
+# Team Title and Metrics Row
+st.markdown(f"<h1 style='margin-bottom: 0;'>Team Draft Performance: {selected_team_name}</h1>", unsafe_allow_html=True)
 
-with header_col1:
-    st.markdown(f"<h1 style='margin-bottom: 0;'>Team Draft Performance: {selected_team_name}</h1>", unsafe_allow_html=True)
-
-with header_col2:
+col0, col1, col2, col3 = st.columns([1, 1, 1, 2])
+with col0:
+    st.image(team_logo_path, width=80)
     st.markdown(f"""
-        <div style='text-align: right; margin-top: 0.5em;'>
+        <div style='margin-top: 0.5em;'>
             <div style='display: inline-block; padding: 0.4em 1.2em; background-color: {grade_color}; color: white;
-                        border-radius: 10px; font-size: 18px; font-weight: bold;'>
-                Draft Grade: {letter_grade} ({draft_score:.1f})
+                        border-radius: 10px; font-size: 16px; font-weight: bold;'>
+                Draft Grade: {letter_grade} ({draft_score:.0f})
             </div>
         </div>
     """, unsafe_allow_html=True)
 
-st.image(team_logo_path, width=80)
-
-# Top bar
-col1, col2, col3 = st.columns([1, 1, 2])
 with col1:
-    st.metric("Total Games Played", df_team["games"].sum())
+    st.metric("Players Drafted", len(df_team))
 with col2:
-    st.metric("Avg Games per Draftee", round(df_team["games"].mean(), 1))
+    st.metric("Avg Weighted Approximate Value", round(df_team["w_av"].mean(), 1))
 with col3:
-    top_player = df_team.loc[df_team["games"].idxmax()]
-    st.metric("Top Career", f"{top_player['pfr_player_name']} ({int(top_player['games'])} games)")
+    top_player = df_team.loc[df_team["impact_score"].idxmax()]
+    st.metric("Top Impact Player", f"{top_player['pfr_player_name']}")
 
-# --- Top Draft Impact and Draft Summary Side-by-Side ---
+# Top Draft Impact
 st.markdown("---")
 chart_col, table_col = st.columns(2)
 
@@ -190,7 +190,7 @@ with table_col:
         </style>
     """, unsafe_allow_html=True)
     st.markdown("### Top Statistical Performers")
-    df_team["Pro-Bowl/All-Pro"] = df_team["recognition"].apply(lambda x: "✓" if x else "✕")
+    df_team["Pro-Bowl/All-Pro"] = df_team["recognition"].apply(lambda x: "✓" if x else "✗")
     df_table = df_team.sort_values("impact", ascending=False).head(10)
     df_table = df_table[["impact", "season", "pfr_player_name", "position", "games", "Pro-Bowl/All-Pro", "stat_summary"]]
     df_table.rename(columns={"stat_summary": "Stats"}, inplace=True)
